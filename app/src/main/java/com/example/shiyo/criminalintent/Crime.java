@@ -39,7 +39,7 @@ public class Crime {
         mDate = date;
     }
 
-    public Boolean getSolved() {
+    public Boolean isSolved() {
         return mSolved;
     }
 
