@@ -51,9 +51,7 @@ public class CrimeListFragment extends Fragment {
         } else {
             mAdapter.notifyDataSetChanged();
         }
-
-
-    }
+   }
 
     private class CrimeHolder  extends RecyclerView.ViewHolder
         implements View.OnClickListener{
@@ -81,7 +79,8 @@ public class CrimeListFragment extends Fragment {
                     Toast.LENGTH_SHORT)
                     .show();
             */
-            Intent intent = CrimeActivity.newIntent(getActivity(), mCrime.getId());
+            //Intent intent = CrimeActivity.newIntent(getActivity(), mCrime.getId());
+            Intent intent = CrimePageActivity.newIntent(getActivity(), mCrime.getId());
             startActivity(intent);
         }
 
