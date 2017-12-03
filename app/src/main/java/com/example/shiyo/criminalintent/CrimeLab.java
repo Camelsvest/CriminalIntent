@@ -1,11 +1,20 @@
 package com.example.shiyo.criminalintent;
 
 import com.example.shiyo.criminalintent.CrimeDbSchema.CrimeTable;
+
+import android.Manifest;
+import android.app.Application;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.net.Uri;
 import android.os.Environment;
+import android.provider.MediaStore;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
+import android.util.Log;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -94,6 +103,13 @@ public class CrimeLab {
         }
 
         return new File(externalFilesDir, crime.getPhotoFileName());
+    }
+
+    public Uri getPhotoUri(Crime crime) {
+        ContentValues contentValues = new ContentValues(1);
+        contentValues.put(MediaStore.Images.Media.DATA, getPhotoFile(crime).getAbsolutePath());
+
+        return mContext.getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues);
     }
 
     public void updateCrime(Crime crime) {

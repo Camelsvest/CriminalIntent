@@ -18,4 +18,8 @@
     <string name="crime_report_suspect">the suspect is %s.</string>
     <string name="crime_report_subject">CriminalIntent Crime Report</string>
     <string name="send_report">Send crime report via</string>
+    <string name="camera_permission_confirmation">This app demonstrates the usage of CameraView. In order to do that, it needs permission to access camera.</string>
+    <string name="camera_permission_not_granted">Camera app cannot do anything without camera permission.</string>
+    <string name="uri_permission_confirmation">This app demonstrates the usage of URI. In order to do that, it needs permission to access URI.</string>
+    <string name="uri_permission_not_granted">App cannot do anything without URI access permission.</string>
 </resources>

@@ -1,17 +1,30 @@
 package com.example.shiyo.criminalintent;
 
+import android.Manifest;
 import android.app.Activity;
+import android.app.Dialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.graphics.Bitmap;
 import android.net.Uri;
+import android.os.Build;
 import android.provider.ContactsContract;
 import android.provider.MediaStore;
+import android.support.annotation.NonNull;
+import android.support.annotation.StringRes;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.DialogFragment;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
 import android.support.v4.app.FragmentManager;
+import android.support.v4.content.ContextCompat;
+import android.support.v4.content.FileProvider;
+import android.support.v7.app.AlertDialog;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -24,6 +37,7 @@ import android.widget.EditText;
 import android.text.format.DateFormat;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 import java.io.File;
 import java.util.Date;
@@ -34,13 +48,18 @@ import java.util.UUID;
  * Created by shiyo on 2017/10/22.
  */
 
-public class CrimeFragment extends Fragment {
+public class CrimeFragment extends Fragment implements ActivityCompat.OnRequestPermissionsResultCallback {
 
     private static final String ARG_CRIME_ID = "crime_id";
     private static final String DIALOG_DATE = "DialogDate";
     private static final int REQUEST_DATE = 0;
     private static final int REQUEST_CONTACT = 1;
     private static final int REQUEST_PHOTO = 2;
+    private static final int REQUEST_CAMERA_PERMISSION = 1;
+    private static final int REQUEST_URI_PERMISSION = 2;
+
+    private static final String TAG = "CrimeFragment";
+    private static final String FRAGMENT_DIALOG = "dialog";
 
     private Crime mCrime;
     private File mPhotoFile;
@@ -167,8 +186,27 @@ public class CrimeFragment extends Fragment {
         mPhotoButton.setEnabled(canTakePhoto);
 
         if (canTakePhoto) {
-            Uri uri = Uri.fromFile(mPhotoFile);
+            Uri uri;
+
+            int comeraPermissionCheck = ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.CAMERA);
+            if (comeraPermissionCheck == -1) {
+                askPermissionStorage(R.string.camera_permission_confirmation,
+                        Manifest.permission.CAMERA,
+                        REQUEST_CAMERA_PERMISSION,
+                        R.string.camera_permission_not_granted);
+            }
+
+            //uri = Uri.fromFile(mPhotoFile);
+            uri = FileProvider.getUriForFile(getContext(), "com.example.shiyo.fileprovider", mPhotoFile);
+            int uriPermissionCheck = ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.WRITE_EXTERNAL_STORAGE);
+            if (uriPermissionCheck == -1) {
+                askPermissionStorage(R.string.uri_permission_confirmation,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                        REQUEST_URI_PERMISSION,
+                        R.string.uri_permission_not_granted);
+            }
             captureImage.putExtra(MediaStore.EXTRA_OUTPUT, uri);
+            captureImage.setFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
         }
 
         mPhotoButton.setOnClickListener(new View.OnClickListener() {
@@ -179,8 +217,30 @@ public class CrimeFragment extends Fragment {
         });
 
         mPhotoView = (ImageView)v.findViewById(R.id.crime_photo);
+        updatePhotoView();
 
         return v;
+    }
+
+    private void askPermissionStorage(@StringRes int message,
+                                      String permission, int requestCode, @StringRes int notGrantedMessage) {
+
+        if (Build.VERSION.SDK_INT >= 23) {
+            // for media
+            if (ContextCompat.checkSelfPermission(getContext(), permission) != PackageManager.PERMISSION_GRANTED) {
+                // insert explanation
+                if (ActivityCompat.shouldShowRequestPermissionRationale(getActivity(), permission)) {
+                    ConfirmationDialogFragment
+                            .newInstance(message, new String[]{permission}, requestCode, notGrantedMessage)
+                            .show(getActivity().getSupportFragmentManager(), FRAGMENT_DIALOG);
+                } else {
+                    ActivityCompat.requestPermissions(getActivity(), new
+                            String[]{ permission }, 1);
+                }
+            }
+        } else {
+            Log.v(TAG, "Permission is granted");
+        }
     }
 
     @Override
@@ -218,6 +278,8 @@ public class CrimeFragment extends Fragment {
             } finally {
                 c.close();
             }
+        } else if (requestCode == REQUEST_PHOTO) {
+            updatePhotoView();
         }
 
 
@@ -249,4 +311,48 @@ public class CrimeFragment extends Fragment {
 
         return report;
     }
+
+    private void updatePhotoView() {
+        if (mPhotoFile == null || !mPhotoFile.exists()) {
+            mPhotoView.setImageDrawable(null);
+        } else {
+            Bitmap bitmap = PictureUtils.getScaledBitmap(mPhotoFile.getPath(), getActivity());
+            mPhotoView.setImageBitmap(bitmap);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case REQUEST_CAMERA_PERMISSION:
+                if (permissions.length != 1 || grantResults.length != 1) {
+                    throw new RuntimeException("Error on requesting camera permission.");
+                }
+                if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(getActivity(), R.string.camera_permission_not_granted,
+                            Toast.LENGTH_SHORT).show();
+                } else {
+                    Log.d(TAG, "Already retrieve permissiion to access Camera now!");
+                }
+                break;
+
+            case REQUEST_URI_PERMISSION:
+                if (permissions.length != 1 || grantResults.length != 1) {
+                    throw new RuntimeException("Error on requesting URI permissiion");
+                }
+
+                if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(getActivity(), R.string.uri_permission_not_granted,
+                            Toast.LENGTH_SHORT).show();
+                } else {
+                    Log.d(TAG, "Already retrieve permissiion to access URI now!");
+                }
+                break;
+        }
+    }
+
+
+
+
 }
